@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Boolesche Logik Tool</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f0f13;
+  --surface: #17171e;
+  --surface2: #1e1e28;
+  --border: #2a2a38;
+  --border2: #3a3a50;
+  --text: #e8e8f0;
+  --muted: #7878a0;
+  --accent: #7c6fff;
+  --accent2: #ff6f9c;
+  --green: #4fffb0;
+  --amber: #ffb84f;
+  --red: #ff5f7e;
+  --mono: 'JetBrains Mono', monospace;
+  --display: 'Syne', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--mono); min-height: 100vh; }
+
+/* Header */
+header { padding: 2rem 2.5rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 1rem; }
+header h1 { font-family: var(--display); font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em; }
+header h1 span { color: var(--accent); }
+.badge { background: var(--accent); color: #fff; font-size: 10px; padding: 2px 8px; border-radius: 20px; font-family: var(--display); font-weight: 600; letter-spacing: .05em; }
+
+/* Input area */
+.input-section { padding: 1.5rem 2.5rem; border-bottom: 1px solid var(--border); display: flex; gap: 1rem; align-items: flex-start; flex-wrap: wrap; }
+.input-group { flex: 1; min-width: 300px; }
+.input-group label { display: block; font-size: 11px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 6px; }
+.formula-input { width: 100%; background: var(--surface2); border: 1px solid var(--border2); color: var(--text); font-family: var(--mono); font-size: 15px; padding: 10px 14px; border-radius: 8px; outline: none; transition: border-color .2s; }
+.formula-input:focus { border-color: var(--accent); }
+.btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-family: var(--mono); font-size: 13px; font-weight: 700; letter-spacing: .05em; transition: all .15s; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: #6a5ef0; transform: translateY(-1px); }
+.btn-secondary { background: var(--surface2); color: var(--muted); border: 1px solid var(--border2); }
+.btn-secondary:hover { color: var(--text); border-color: var(--border2); }
+.examples { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.ex-chip { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); font-family: var(--mono); font-size: 11px; padding: 4px 10px; border-radius: 20px; cursor: pointer; transition: all .15s; }
+.ex-chip:hover { color: var(--accent); border-color: var(--accent); }
+
+/* Symbol toolbar */
+.sym-toolbar { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; align-items: center; }
+.sym-group { display: flex; gap: 3px; align-items: center; }
+.sym-divider { width: 1px; height: 24px; background: var(--border2); margin: 0 4px; }
+.sym-label { font-size: 10px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; margin-right: 2px; }
+.sym-btn { padding: 5px 11px; border-radius: 6px; border: 1px solid var(--border2); background: var(--surface2); color: var(--text); font-family: var(--mono); font-size: 15px; cursor: pointer; transition: all .12s; line-height: 1; user-select: none; position: relative; }
+.sym-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; transform: translateY(-1px); }
+.sym-btn:active { transform: translateY(0); }
+.sym-btn[data-tip]:hover::after { content: attr(data-tip); position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%); background: #1e1e28; border: 1px solid var(--border2); color: var(--muted); font-size: 10px; padding: 3px 8px; border-radius: 4px; white-space: nowrap; pointer-events: none; z-index: 10; }
+.sym-btn.var-btn { color: var(--amber); border-color: #3a3a10; background: #1e1e10; }
+.sym-btn.var-btn:hover { background: var(--amber); color: #000; border-color: var(--amber); }
+.sym-btn.op-btn { color: var(--accent); border-color: #2a2a50; }
+.sym-btn.op-btn:hover { background: var(--accent); color: #fff; }
+.sym-btn.paren-btn { color: var(--muted); }
+.sym-btn.del-btn { color: var(--red); border-color: #3a1020; background: #1e1010; font-size: 13px; }
+.sym-btn.del-btn:hover { background: var(--red); color: #fff; border-color: var(--red); }
+
+/* Tabs */
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); padding: 0 2.5rem; overflow-x: auto; }
+.tab { padding: 12px 18px; font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; letter-spacing: .05em; transition: all .15s; background: none; border-top: none; border-left: none; border-right: none; }
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Content */
+.content { padding: 2rem 2.5rem; }
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* Error */
+.error-box { background: #2a1520; border: 1px solid #ff5f7e55; color: var(--red); padding: 10px 14px; border-radius: 8px; font-size: 13px; margin: 1rem 2.5rem; }
+
+/* === WAHRHEITSTABELLE === */
+.truth-table { border-collapse: collapse; font-size: 13px; width: 100%; max-width: 600px; }
+.truth-table th { background: var(--surface2); color: var(--muted); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; padding: 8px 16px; text-align: center; border: 1px solid var(--border); }
+.truth-table th.result-col { color: var(--accent); }
+.truth-table td { padding: 7px 16px; text-align: center; border: 1px solid var(--border); font-size: 14px; }
+.truth-table tr:nth-child(even) td { background: var(--surface); }
+.val1 { color: var(--green); font-weight: 700; }
+.val0 { color: var(--red); }
+.result-td { font-weight: 700; font-size: 16px; }
+
+/* === KV DIAGRAMM === */
+.kv-container { overflow-x: auto; }
+.kv-table { border-collapse: collapse; }
+.kv-header-cell { padding: 6px 10px; text-align: center; font-size: 12px; color: var(--muted); font-family: var(--mono); min-width: 64px; }
+.kv-cell { width: 64px; height: 64px; text-align: center; vertical-align: middle; border: 1px solid var(--border2); font-size: 20px; font-weight: 700; font-family: var(--mono); cursor: default; transition: background .15s; position: relative; }
+.kv-cell.kv1 { background: #1a3d2e; color: var(--green); }
+.kv-cell.kv0 { background: var(--surface); color: var(--muted); }
+.kv-cell .minterm-idx { position: absolute; top: 3px; right: 5px; font-size: 9px; color: var(--muted); font-weight: 400; }
+.kv-axis-label { font-size: 11px; color: var(--accent); letter-spacing: .05em; margin-bottom: 6px; font-family: var(--mono); }
+.kv-note { font-size: 12px; color: var(--muted); margin-top: 12px; line-height: 1.6; }
+
+/* === NORMALFORMEN === */
+.nf-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
+.nf-card .nf-label { font-size: 10px; color: var(--muted); letter-spacing: .12em; text-transform: uppercase; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+.nf-card .nf-label .tag { font-size: 10px; padding: 2px 8px; border-radius: 20px; letter-spacing: .05em; }
+.tag-kdnf { background: #1a2a4a; color: #7ab4ff; }
+.tag-kknf { background: #2a1a0a; color: var(--amber); }
+.tag-simp { background: #1a3d2e; color: var(--green); }
+.nf-formula { font-size: 15px; color: var(--text); word-break: break-all; line-height: 1.7; }
+.nf-minterms { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+/* === VEREINFACHUNG === */
+.steps-container { display: flex; flex-direction: column; gap: 1rem; }
+.step-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem 1.5rem; position: relative; }
+.step-num { position: absolute; top: -12px; left: 16px; background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 20px; font-family: var(--display); }
+.step-title { font-size: 11px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 8px; margin-top: 4px; }
+.step-content { font-size: 13px; color: var(--text); line-height: 1.8; }
+.step-content code { background: var(--surface2); border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; color: var(--amber); font-family: var(--mono); font-size: 12px; }
+.group-table { border-collapse: collapse; font-size: 12px; margin-top: 8px; width: 100%; max-width: 500px; }
+.group-table th { background: var(--surface2); color: var(--muted); padding: 5px 10px; border: 1px solid var(--border); font-size: 11px; text-align: left; }
+.group-table td { padding: 5px 10px; border: 1px solid var(--border); font-family: var(--mono); }
+.group-table td.merged { color: var(--accent); }
+.result-formula { font-size: 16px; color: var(--green); font-weight: 700; margin-top: 8px; background: #0a2a1a; border: 1px solid #1a5a3a; padding: 10px 14px; border-radius: 8px; }
+
+/* === SCHALTKREIS === */
+#circuit-canvas { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; display: block; max-width: 100%; }
+.circuit-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.legend-dot { width: 12px; height: 12px; border-radius: 2px; }
+
+/* Responsive */
+@media (max-width: 600px) {
+  header, .input-section, .content { padding-left: 1rem; padding-right: 1rem; }
+  .tabs { padding: 0 1rem; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Boolesche <span>Logik</span> Tool</h1>
+    <div style="font-size:12px;color:var(--muted);margin-top:2px">Wahrheitstabelle · KV-Diagramm · KDNF/KKNF · Vereinfachung · Schaltkreis</div>
+  </div>
+  <div class="badge" style="margin-left:auto">HTL SPENGERGASSE</div>
+</header>
+
+<div class="input-section">
+  <div class="input-group">
+    <label>Boolesche Formel eingeben</label>
+    <input class="formula-input" id="formula" type="text" value="(A AND B) OR (NOT A AND C)" placeholder="z.B. (A AND B) OR NOT C" />
+    <div class="examples" style="margin-top:8px">
+      <span style="font-size:11px;color:var(--muted);align-self:center">Beispiele:</span>
+      <span class="ex-chip" onclick="loadEx('(A AND B) OR (NOT A AND C)')">A∧B ∨ ¬A∧C</span>
+      <span class="ex-chip" onclick="loadEx('NOT (A OR B)')">¬(A∨B)</span>
+      <span class="ex-chip" onclick="loadEx('(A OR B) AND (A OR C)')">Distributivgesetz</span>
+      <span class="ex-chip" onclick="loadEx('A XOR B')">A XOR B</span>
+      <span class="ex-chip" onclick="loadEx('(A AND B) OR (NOT A AND NOT B)')">Äquivalenz</span>
+      <span class="ex-chip" onclick="loadEx('(A AND B AND C) OR (A AND NOT B) OR (NOT A AND B AND NOT C)')">3-Var Komplex</span>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px">Operatoren: <code style="color:var(--amber)">AND OR NOT XOR</code> &nbsp;|&nbsp; Symbole: <code style="color:var(--amber)">∧ ∨ ¬ ↔</code> &nbsp;|&nbsp; Variablen: A B C D (max. 4)</div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:flex-end;padding-top:24px">
+    <button class="btn btn-primary" onclick="compute()">▶ Berechnen</button>
+  </div>
+</div>
+
+<div id="error-box" class="error-box" style="display:none"></div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('truth')">① Wahrheitstabelle</button>
+  <button class="tab" onclick="showTab('kv')">② KV-Diagramm</button>
+  <button class="tab" onclick="showTab('normal')">③ KDNF / KKNF</button>
+  <button class="tab" onclick="showTab('simplify')">④ Vereinfachung</button>
+  <button class="tab" onclick="showTab('circuit')">⑤ Schaltkreis</button>
+</div>
+
+<div class="content">
+  <div class="panel active" id="panel-truth"></div>
+  <div class="panel" id="panel-kv"></div>
+  <div class="panel" id="panel-normal"></div>
+  <div class="panel" id="panel-simplify"></div>
+  <div class="panel" id="panel-circuit">
+    <canvas id="circuit-canvas" width="900" height="500"></canvas>
+    <div class="circuit-legend" id="circuit-legend"></div>
+  </div>
+</div>
+
+<script>
+// ===== SYMBOL TOOLBAR =====
+function insertSym(sym) {
+  const inp = document.getElementById('formula');
+  inp.focus();
+  const start = inp.selectionStart;
+  const end = inp.selectionEnd;
+  const val = inp.value;
+  inp.value = val.slice(0, start) + sym + val.slice(end);
+  const newPos = start + sym.length;
+  inp.setSelectionRange(newPos, newPos);
+}
+
+function deleteSym() {
+  const inp = document.getElementById('formula');
+  inp.focus();
+  const start = inp.selectionStart;
+  const end = inp.selectionEnd;
+  if (start === end && start > 0) {
+    // check for multi-char symbols like ' ∧ ' or ' ∨ '
+    const val = inp.value;
+    let deleteLen = 1;
+    if (start >= 3) {
+      const prev3 = val.slice(start-3, start);
+      if ([' ∧ ',' ∨ ',' ↔ '].includes(prev3)) deleteLen = 3;
+    }
+    inp.value = val.slice(0, start - deleteLen) + val.slice(start);
+    inp.setSelectionRange(start - deleteLen, start - deleteLen);
+  } else if (end > start) {
+    const val = inp.value;
+    inp.value = val.slice(0, start) + val.slice(end);
+    inp.setSelectionRange(start, start);
+  }
+}
+
+function insertParens() {
+  const inp = document.getElementById('formula');
+  inp.focus();
+  const start = inp.selectionStart;
+  const end = inp.selectionEnd;
+  const val = inp.value;
+  if (start === end) {
+    inp.value = val.slice(0, start) + '()' + val.slice(end);
+    inp.setSelectionRange(start + 1, start + 1);
+  } else {
+    const selected = val.slice(start, end);
+    inp.value = val.slice(0, start) + '(' + selected + ')' + val.slice(end);
+    inp.setSelectionRange(start, start + selected.length + 2);
+  }
+}
+
+function clearFormula() {
+  const inp = document.getElementById('formula');
+  inp.value = '';
+  inp.focus();
+}
+
+// ===== PARSER & EVALUATOR =====
+function getVars(expr) {
+  const clean = expr.replace(/[∧∨¬↔]/g, ' ');
+  const tokens = clean.match(/\b[A-D]\b/g) || [];
+  return [...new Set(tokens)].sort();
+}
+
+function evalFormula(expr, assignment) {
+  let s = expr.trim();
+  s = s.replace(/∧/g, ' AND ').replace(/∨/g, ' OR ').replace(/¬/g, ' NOT ').replace(/↔/g, ' XOR ');
+  s = s.replace(/\bXOR\b/gi, '!==');
+  s = s.replace(/\bAND\b/gi, '&&').replace(/\bOR\b/gi, '||').replace(/\bNOT\b/gi, '!');
+  for (const [v, val] of Object.entries(assignment)) {
+    s = s.replace(new RegExp('\\b' + v + '\\b', 'g'), val ? 'true' : 'false');
+  }
+  return !!new Function('return (' + s + ')')();
+}
+
+function allRows(vars) {
+  const n = vars.length;
+  const rows = [];
+  // Beginnt mit 1,0,1,0... (reversed von üblich)
+  for (let i = (1 << n) - 1; i >= 0; i--) {
+    const a = {};
+    vars.forEach((v, j) => a[v] = !!((i >> (n - 1 - j)) & 1));
+    rows.push(a);
+  }
+  return rows;
+}
+
+let state = null;
+
+function compute() {
+  const expr = document.getElementById('formula').value.trim();
+  const errBox = document.getElementById('error-box');
+  errBox.style.display = 'none';
+  try {
+    const vars = getVars(expr);
+    if (!vars.length) throw new Error('Keine Variablen (A–D) gefunden.');
+    if (vars.length > 4) throw new Error('Maximal 4 Variablen erlaubt.');
+    const rows = allRows(vars);
+    const results = rows.map(a => ({ a, y: evalFormula(expr, a) }));
+    state = { vars, rows, results, expr };
+    renderTruth();
+    renderKV();
+    renderNormal();
+    renderSimplify();
+    renderCircuit();
+  } catch (e) {
+    errBox.textContent = '⚠ ' + e.message;
+    errBox.style.display = 'block';
+  }
+}
+
+function loadEx(v) { document.getElementById('formula').value = v; compute(); }
+
+function showTab(id) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    const ids = ['truth', 'kv', 'normal', 'simplify', 'circuit'];
+    t.classList.toggle('active', ids[i] === id);
+  });
+  document.querySelectorAll('.panel').forEach(p => {
+    p.classList.toggle('active', p.id === 'panel-' + id);
+  });
+}
+
+// ===== TAB 1: WAHRHEITSTABELLE =====
+function renderTruth() {
+  const { vars, results } = state;
+  let h = '<table class="truth-table"><thead><tr>';
+  vars.forEach(v => h += `<th>${v}</th>`);
+  h += '<th class="result-col">Y (Ergebnis)</th></tr></thead><tbody>';
+  results.forEach(({ a, y }) => {
+    h += '<tr>';
+    vars.forEach(v => h += `<td class="${a[v] ? 'val1' : 'val0'}">${a[v] ? 1 : 0}</td>`);
+    h += `<td class="result-td ${y ? 'val1' : 'val0'}">${y ? 1 : 0}</td></tr>`;
+  });
+  h += '</tbody></table>';
+  const ones = results.filter(r => r.y).length;
+  const zeros = results.filter(r => !r.y).length;
+  h += `<p style="margin-top:12px;font-size:12px;color:var(--muted)">Gesamt: ${results.length} Zeilen &nbsp;|&nbsp; <span style="color:var(--green)">${ones}× Y=1</span> &nbsp;|&nbsp; <span style="color:var(--red)">${zeros}× Y=0</span></p>`;
+  document.getElementById('panel-truth').innerHTML = h;
+}
+
+// ===== TAB 2: KV-DIAGRAMM =====
+const grayOrder2 = [[0,0],[0,1],[1,1],[1,0]];
+const grayLabels2 = ['00','01','11','10'];
+
+function kvIndex(vars, assignment) {
+  let idx = 0;
+  vars.forEach((v, j) => { if (assignment[v]) idx |= (1 << (vars.length - 1 - j)); });
+  return idx;
+}
+
+function getKVValue(vars, results, assignment) {
+  const row = results.find(r => vars.every(v => r.a[v] === assignment[v]));
+  return row ? (row.y ? 1 : 0) : 0;
+}
+
+function renderKV() {
+  const { vars, results } = state;
+  const n = vars.length;
+  let h = '<div class="kv-container">';
+
+  if (n === 1) {
+    h += `<div class="kv-axis-label">Variable: ${vars[0]}</div>`;
+    h += '<table class="kv-table"><thead><tr>';
+    h += `<th class="kv-header-cell">¬${vars[0]} (0)</th><th class="kv-header-cell">${vars[0]} (1)</th>`;
+    h += '</tr></thead><tbody><tr>';
+    [false, true].forEach(v => {
+      const a = {}; a[vars[0]] = v;
+      const val = getKVValue(vars, results, a);
+      const idx = kvIndex(vars, a);
+      h += `<td class="kv-cell ${val ? 'kv1' : 'kv0'}"><span class="minterm-idx">m${idx}</span>${val}</td>`;
+    });
+    h += '</tr></tbody></table>';
+  } else if (n === 2) {
+    const [A, B] = vars;
+    h += `<div class="kv-axis-label">Zeilen: ${A} &nbsp;|&nbsp; Spalten: ${B}</div>`;
+    h += '<table class="kv-table"><thead><tr>';
+    h += `<th class="kv-header-cell">${A} \\ ${B}</th>`;
+    h += `<th class="kv-header-cell">¬${B} (0)</th><th class="kv-header-cell">${B} (1)</th>`;
+    h += '</tr></thead><tbody>';
+    [false, true].forEach(a => {
+      h += '<tr>';
+      h += `<td class="kv-header-cell">${a ? A : '¬'+A} (${a?1:0})</td>`;
+      [false, true].forEach(b => {
+        const assignment = {}; assignment[A]=a; assignment[B]=b;
+        const val = getKVValue(vars, results, assignment);
+        const idx = kvIndex(vars, assignment);
+        h += `<td class="kv-cell ${val?'kv1':'kv0'}"><span class="minterm-idx">m${idx}</span>${val}</td>`;
+      });
+      h += '</tr>';
+    });
+    h += '</tbody></table>';
+  } else if (n === 3) {
+    const [A, B, C] = vars;
+    const colPairs = [[false,false],[false,true],[true,true],[true,false]];
+    const colLabels = ['¬B¬C','¬BC','BC','B¬C'];
+    h += `<div class="kv-axis-label">Zeilen: ${A} &nbsp;|&nbsp; Spalten: ${B}${C} (Gray-Code)</div>`;
+    h += '<table class="kv-table"><thead><tr>';
+    h += `<th class="kv-header-cell">${A} \\ ${B}${C}</th>`;
+    colLabels.forEach(l => h += `<th class="kv-header-cell" style="font-size:11px">${l}</th>`);
+    h += '</tr></thead><tbody>';
+    [false, true].forEach(a => {
+      h += '<tr>';
+      h += `<td class="kv-header-cell">${a ? A : '¬'+A} (${a?1:0})</td>`;
+      colPairs.forEach(([b, c]) => {
+        const assignment = {}; assignment[A]=a; assignment[B]=b; assignment[C]=c;
+        const val = getKVValue(vars, results, assignment);
+        const idx = kvIndex(vars, assignment);
+        h += `<td class="kv-cell ${val?'kv1':'kv0'}"><span class="minterm-idx">m${idx}</span>${val}</td>`;
+      });
+      h += '</tr>';
+    });
+    h += '</tbody></table>';
+  } else if (n === 4) {
+    const [A, B, C, D] = vars;
+    const colPairs = [[false,false],[false,true],[true,true],[true,false]];
+    const rowPairs = [[false,false],[false,true],[true,true],[true,false]];
+    const colLabels = ['¬C¬D','¬CD','CD','C¬D'];
+    const rowLabels = ['¬A¬B','¬AB','AB','A¬B'];
+    h += `<div class="kv-axis-label">Zeilen: ${A}${B} &nbsp;|&nbsp; Spalten: ${C}${D} (Gray-Code)</div>`;
+    h += '<table class="kv-table"><thead><tr>';
+    h += `<th class="kv-header-cell">${A}${B} \\ ${C}${D}</th>`;
+    colLabels.forEach(l => h += `<th class="kv-header-cell" style="font-size:11px">${l}</th>`);
+    h += '</tr></thead><tbody>';
+    rowPairs.forEach(([a, b], ri) => {
+      h += '<tr>';
+      h += `<td class="kv-header-cell" style="font-size:11px">${rowLabels[ri]}</td>`;
+      colPairs.forEach(([c, d]) => {
+        const assignment = {}; assignment[A]=a; assignment[B]=b; assignment[C]=c; assignment[D]=d;
+        const val = getKVValue(vars, results, assignment);
+        const idx = kvIndex(vars, assignment);
+        h += `<td class="kv-cell ${val?'kv1':'kv0'}"><span class="minterm-idx">m${idx}</span>${val}</td>`;
+      });
+      h += '</tr>';
+    });
+    h += '</tbody></table>';
+  }
+
+  h += `<p class="kv-note">💡 Grüne Felder (1) = Minterme &nbsp;|&nbsp; Spalten/Zeilen in Gray-Code-Reihenfolge (nur 1 Bit ändert sich je Schritt) &nbsp;|&nbsp; m# = Minterm-Index</p>`;
+  h += '</div>';
+  document.getElementById('panel-kv').innerHTML = h;
+}
+
+// ===== TAB 3: KDNF / KKNF =====
+function mintermStr(vars, assignment) {
+  return vars.map(v => assignment[v] ? v : '¬'+v).join('∧');
+}
+function maxtermStr(vars, assignment) {
+  return vars.map(v => assignment[v] ? '¬'+v : v).join('∨');
+}
+
+function renderNormal() {
+  const { vars, results } = state;
+  const ones = results.filter(r => r.y);
+  const zeros = results.filter(r => !r.y);
+
+  const kdnfTerms = ones.map(r => '(' + mintermStr(vars, r.a) + ')');
+  const kknfTerms = zeros.map(r => '(' + maxtermStr(vars, r.a) + ')');
+  const kdnf = kdnfTerms.length ? kdnfTerms.join(' ∨ ') : '0';
+  const kknf = kknfTerms.length ? kknfTerms.join(' ∧ ') : '1';
+
+  const mintermIdxs = ones.map(r => kvIndex(vars, r.a)).sort((a,b)=>a-b);
+  const maxtermIdxs = zeros.map(r => kvIndex(vars, r.a)).sort((a,b)=>a-b);
+
+  let h = '';
+  h += `<div class="nf-card">
+    <div class="nf-label">KDNF — Kanonische Disjunktive Normalform <span class="tag tag-kdnf">Verknüpfung mit ∨</span></div>
+    <div class="nf-formula">${kdnf}</div>
+    <div class="nf-minterms">Minterme: { ${mintermIdxs.join(', ')} } — das sind alle Zeilen mit Y = 1</div>
+  </div>`;
+  h += `<div class="nf-card">
+    <div class="nf-label">KKNF — Kanonische Konjunktive Normalform <span class="tag tag-kknf">Verknüpfung mit ∧</span></div>
+    <div class="nf-formula">${kknf}</div>
+    <div class="nf-minterms">Maxterme: { ${maxtermIdxs.join(', ')} } — das sind alle Zeilen mit Y = 0</div>
+  </div>`;
+  h += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.25rem 1.5rem;margin-bottom:1rem">
+    <div style="font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">Erklärung</div>
+    <div style="font-size:13px;line-height:1.9;color:var(--text)">
+      <b style="color:var(--accent)">KDNF:</b> Für jede Zeile mit Y=1 wird ein Minterm gebildet.<br>
+      &nbsp;&nbsp;→ Jede Variable kommt vor: positiv wenn sie 1 ist, negiert wenn sie 0 ist.<br>
+      &nbsp;&nbsp;→ Minterme werden mit <b>∨ (OR)</b> verknüpft.<br><br>
+      <b style="color:var(--amber)">KKNF:</b> Für jede Zeile mit Y=0 wird ein Maxterm gebildet.<br>
+      &nbsp;&nbsp;→ Jede Variable kommt vor: negiert wenn sie 1 ist, positiv wenn sie 0 ist.<br>
+      &nbsp;&nbsp;→ Maxterme werden mit <b>∧ (AND)</b> verknüpft.
+    </div>
+  </div>`;
+
+  document.getElementById('panel-normal').innerHTML = h;
+}
+
+// ===== TAB 4: VEREINFACHUNG (Quine-McCluskey) =====
+function quineSimplify(mintermIdxs, vars) {
+  if (!mintermIdxs.length) return { formula: '0', steps: [] };
+  if (mintermIdxs.length === (1 << vars.length)) return { formula: '1', steps: [] };
+
+  const n = vars.length;
+  const toBin = x => x.toString(2).padStart(n, '0');
+  const countOnes = b => b.split('').filter(c => c === '1').length;
+
+  function combine(a, b) {
+    let diff = 0, pos = -1;
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] === '-' && b[i] === '-') continue;
+      if (a[i] === '-' || b[i] === '-') { if (a[i] !== b[i]) return null; }
+      else if (a[i] !== b[i]) { diff++; pos = i; }
+    }
+    if (diff === 1) { const r = a.split(''); r[pos] = '-'; return r.join(''); }
+    return null;
+  }
+
+  const steps = [];
+  let groups = mintermIdxs.map(m => ({ bin: toBin(m), mints: [m], used: false }));
+
+  steps.push({ title: 'Schritt 1 — Ausgangsminterme', content: groups.map(g => `m${g.mints[0]} = ${g.bin}`).join('  |  ') });
+
+  let allPrimes = [];
+  let passNum = 1;
+
+  for (let pass = 0; pass < n; pass++) {
+    const usedIdx = new Set();
+    const nextGroups = [];
+    const added = new Set();
+    for (let i = 0; i < groups.length; i++) {
+      for (let j = i + 1; j < groups.length; j++) {
+        const c = combine(groups[i].bin, groups[j].bin);
+        if (c && !added.has(c + JSON.stringify([...new Set([...groups[i].mints,...groups[j].mints])].sort()))) {
+          added.add(c);
+          nextGroups.push({ bin: c, mints: [...new Set([...groups[i].mints,...groups[j].mints])], used: false });
+          usedIdx.add(i); usedIdx.add(j);
+        }
+      }
+    }
+    groups.forEach((g, i) => { if (!usedIdx.has(i)) allPrimes.push(g); });
+    if (!nextGroups.length) break;
+    passNum++;
+    steps.push({ title: `Schritt ${passNum} — Zusammenfassen (Runde ${pass+1})`, content: nextGroups.map(g => `{${g.mints.map(m=>'m'+m).join(',')}} = ${g.bin}`).join('  |  ') + (nextGroups.length === 0 ? '(keine neuen Gruppen)' : '') });
+    groups = nextGroups;
+  }
+  groups.forEach(g => allPrimes.push(g));
+
+  // Eindeutige Primimplikanten
+  const unique = [];
+  const seen = new Set();
+  allPrimes.forEach(p => { const key = p.bin; if (!seen.has(key)) { seen.add(key); unique.push(p); } });
+  allPrimes = unique;
+
+  steps.push({ title: 'Primimplikanten', content: allPrimes.map(p => `${p.bin} → {${p.mints.map(m=>'m'+m).join(',')}}`).join('  |  ') });
+
+  // Überdeckung (greedy)
+  const remaining = new Set(mintermIdxs);
+  const selected = [];
+  const coverage = {};
+  allPrimes.forEach((p, pi) => p.mints.forEach(m => { if (!coverage[m]) coverage[m] = []; coverage[m].push(pi); }));
+
+  // Essenzielle Primimplikanten
+  const essential = new Set();
+  mintermIdxs.forEach(m => { if (coverage[m] && coverage[m].length === 1) essential.add(coverage[m][0]); });
+  essential.forEach(pi => { selected.push(pi); allPrimes[pi].mints.forEach(m => remaining.delete(m)); });
+
+  while (remaining.size) {
+    let best = -1, bestCount = 0;
+    allPrimes.forEach((p, pi) => {
+      if (selected.includes(pi)) return;
+      let c = 0; p.mints.forEach(m => { if (remaining.has(m)) c++; });
+      if (c > bestCount) { bestCount = c; best = pi; }
+    });
+    if (best === -1) break;
+    selected.push(best); allPrimes[best].mints.forEach(m => remaining.delete(m));
+  }
+
+  const termStrings = selected.map(pi => {
+    const b = allPrimes[pi].bin;
+    const parts = [];
+    for (let i = 0; i < n; i++) {
+      if (b[i] === '1') parts.push(vars[i]);
+      else if (b[i] === '0') parts.push('¬' + vars[i]);
+    }
+    return parts.length === 1 ? parts[0] : '(' + parts.join('∧') + ')';
+  });
+
+  const formula = termStrings.join(' ∨ ') || '0';
+  steps.push({ title: `Schritt ${passNum+1} — Minimale DNF`, content: `Ausgewählte Terme: ${selected.map(pi=>allPrimes[pi].bin).join(', ')}` });
+  return { formula, steps };
+}
+
+function renderSimplify() {
+  const { vars, results } = state;
+  const mintermIdxs = results.filter(r => r.y).map(r => kvIndex(vars, r.a));
+  const maxtermIdxs = results.filter(r => !r.y).map(r => kvIndex(vars, r.a));
+
+  const dnfResult = quineSimplify(mintermIdxs, vars);
+  // Für KNF: Minterme des invertierten
+  const knfResult = quineSimplify(maxtermIdxs, vars);
+  // KNF-Terme als Maxterme umschreiben
+  let knfFormula = '';
+  if (maxtermIdxs.length === 0) knfFormula = '1';
+  else if (maxtermIdxs.length === (1 << vars.length)) knfFormula = '0';
+  else {
+    // vereinfachte Maxterme aus KKNF (Gruppen der 0er)
+    const raw = quineSimplify(maxtermIdxs, vars);
+    // invertiere jeden Term
+    const maxTerms = results.filter(r => !r.y).map(r => '(' + vars.map(v => r.a[v] ? '¬'+v : v).join('∨') + ')');
+    knfFormula = maxTerms.join(' ∧ ');
+    if (maxTerms.length > 2) knfFormula = '(vereinfacht) ' + raw.formula.split(' ∨ ').map(t => {
+      const lit = t.replace(/[()]/g,'').split('∧');
+      return '(' + lit.map(l => l.startsWith('¬') ? l.slice(1) : '¬'+l).join('∨') + ')';
+    }).join(' ∧ ');
+  }
+
+  let h = '<div class="steps-container">';
+
+  // Intro-Karte
+  h += `<div class="step-card">
+    <div class="step-num">Methode</div>
+    <div class="step-title" style="margin-top:16px">Quine-McCluskey-Algorithmus</div>
+    <div class="step-content">
+      Der Quine-McCluskey-Algorithmus ist das mathematische Verfahren hinter dem KV-Diagramm. 
+      Er findet automatisch alle Gruppen und die minimale Formel.<br><br>
+      <b>Minterme (Y=1):</b> { ${mintermIdxs.join(', ')||'keine'} }<br>
+      <b>Maxterme (Y=0):</b> { ${maxtermIdxs.join(', ')||'keine'} }
+    </div>
+  </div>`;
+
+  // Schritte
+  dnfResult.steps.forEach((step, i) => {
+    h += `<div class="step-card">
+      <div class="step-num">${i + 1}</div>
+      <div class="step-title" style="margin-top:16px">${step.title}</div>
+      <div class="step-content" style="font-family:var(--mono);font-size:12px;color:var(--text)">${step.content}</div>
+    </div>`;
+  });
+
+  // Ergebnis
+  h += `<div class="step-card" style="border-color:var(--green)">
+    <div class="step-num" style="background:var(--green);color:#000">Ergebnis</div>
+    <div class="step-title" style="margin-top:16px">Minimale Formeln</div>
+    <div class="step-content">
+      <div style="margin-bottom:10px">
+        <span style="font-size:11px;color:var(--muted);letter-spacing:.08em">MINIMALE DNF (Disjunktive Normalform):</span>
+        <div class="result-formula">${dnfResult.formula}</div>
+      </div>
+      <div>
+        <span style="font-size:11px;color:var(--muted);letter-spacing:.08em">KKNF (Konjunktive Normalform):</span>
+        <div class="result-formula" style="color:var(--amber);background:#2a1a0a;border-color:#5a3a10">${knfFormula||'1'}</div>
+      </div>
+    </div>
+  </div>`;
+
+  h += '</div>';
+  document.getElementById('panel-simplify').innerHTML = h;
+}
+
+// ===== TAB 5: SCHALTKREIS =====
+function renderCircuit() {
+  const canvas = document.getElementById('circuit-canvas');
+  const ctx = canvas.getContext('2d');
+  const { vars, results, expr } = state;
+  const W = canvas.width, H = canvas.height;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#17171e';
+  ctx.fillRect(0, 0, W, H);
+
+  // Parse the expression into a tree
+  let tokenExpr = expr.replace(/∧/g,' AND ').replace(/∨/g,' OR ').replace(/¬/g,' NOT ').replace(/↔/g,' XOR ');
+  tokenExpr = tokenExpr.replace(/\bXOR\b/gi,'_XOR_');
+
+  // Build simplified circuit visualization from KDNF
+  const mintermIdxs = results.filter(r => r.y).map(r => kvIndex(vars, r.a));
+  const dnfResult = quineSimplify(mintermIdxs, vars);
+
+  drawCircuit(ctx, W, H, vars, dnfResult.formula, results);
+  renderCircuitLegend();
+}
+
+function drawCircuit(ctx, W, H, vars, formula, results) {
+  ctx.font = '13px JetBrains Mono, monospace';
+
+  // Colors
+  const COL = { wire: '#3a3a55', active: '#4fffb0', gate: '#1e1e28', gateBorder: '#7c6fff', text: '#e8e8f0', muted: '#7878a0', and: '#7c6fff', or: '#ff6f9c', not: '#ffb84f', output: '#4fffb0' };
+
+  // Parse minimized DNF terms
+  let terms = [];
+  if (formula === '0') { terms = []; }
+  else if (formula === '1') { terms = [['1']]; }
+  else {
+    // Split by top-level ∨
+    const raw = formula.split('∨').map(t => t.trim().replace(/^\(|\)$/g,'').split('∧').map(l=>l.trim()));
+    terms = raw;
+  }
+
+  const numTerms = Math.max(terms.length, 1);
+  const inputX = 60;
+  const notX = 160;
+  const andX = 320;
+  const orX = 520;
+  const outX = 680;
+
+  // Calculate y positions for inputs
+  const varSpacing = Math.min(60, (H - 80) / Math.max(vars.length * 2, 1));
+  const varYStart = 60;
+
+  // Draw title
+  ctx.fillStyle = COL.muted;
+  ctx.font = '11px JetBrains Mono, monospace';
+  ctx.fillText('Schaltkreis — Minimale DNF: ' + formula, 20, 20);
+
+  // Draw variable inputs
+  const varY = {};
+  vars.forEach((v, i) => {
+    const y = varYStart + i * (H - 100) / Math.max(vars.length - 1, 1);
+    varY[v] = y;
+
+    // Wire
+    ctx.beginPath(); ctx.strokeStyle = COL.wire; ctx.lineWidth = 1.5;
+    ctx.moveTo(inputX, y); ctx.lineTo(notX - 20, y); ctx.stroke();
+
+    // Label box
+    ctx.fillStyle = COL.gate; ctx.strokeStyle = COL.gateBorder; ctx.lineWidth = 1;
+    roundRect(ctx, inputX - 30, y - 12, 32, 24, 4);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = COL.text; ctx.font = '13px JetBrains Mono, monospace'; ctx.textAlign = 'center';
+    ctx.fillText(v, inputX - 14, y + 5);
+
+    // NOT gate for negated version
+    const notY = y + 25;
+    varY['¬' + v] = notY;
+    drawNOTgate(ctx, notX, notY, COL);
+    // wire from input to NOT
+    ctx.beginPath(); ctx.strokeStyle = COL.wire; ctx.lineWidth = 1;
+    ctx.moveTo(inputX, y); ctx.lineTo(inputX, notY); ctx.lineTo(notX - 2, notY); ctx.stroke();
+    // wire after NOT
+    ctx.beginPath(); ctx.strokeStyle = COL.wire; ctx.lineWidth = 1;
+    ctx.moveTo(notX + 32, notY); ctx.lineTo(notX + 60, notY); ctx.stroke();
+    ctx.fillStyle = COL.amber; ctx.font = '11px JetBrains Mono, monospace'; ctx.textAlign = 'left';
+    ctx.fillText('¬' + v, notX + 35, notY + 4);
+  });
+
+  // Draw AND gates for each term
+  const andGateY = {};
+  const termSpacing = (H - 80) / Math.max(numTerms, 1);
+
+  terms.forEach((term, ti) => {
+    const ay = 60 + ti * termSpacing + termSpacing / 2;
+    andGateY[ti] = ay;
+
+    if (term.length === 1 && (term[0] === '1' || term[0] === '0')) {
+      ctx.fillStyle = term[0] === '1' ? COL.active : COL.muted;
+      ctx.font = '14px JetBrains Mono, monospace'; ctx.textAlign = 'center';
+      ctx.fillText(term[0], andX + 20, ay + 5);
+      return;
+    }
+
+    if (term.length === 1) {
+      // Direct wire — single literal
+      const lit = term[0];
+      const srcY = varY[lit] || ay;
+      ctx.beginPath(); ctx.strokeStyle = COL.wire; ctx.lineWidth = 1.5;
+      ctx.moveTo(notX + 90, srcY); ctx.lineTo(andX + 55, ay); ctx.stroke();
+      ctx.fillStyle = COL.muted; ctx.font = '11px JetBrains Mono'; ctx.textAlign = 'center';
+      ctx.fillText(lit, andX + 20, ay + 4);
+    } else {
+      // AND gate
+      drawANDgate(ctx, andX, ay, COL);
+      // wires from literals to AND gate
+      const inputSpread = 10 * (term.length - 1);
+      term.forEach((lit, li) => {
+        const srcY = varY[lit] !== undefined ? varY[lit] : ay;
+        const inY = ay - inputSpread / 2 + li * (inputSpread / Math.max(term.length - 1, 1));
+        ctx.beginPath(); ctx.strokeStyle = COL.wire; ctx.lineWidth = 1;
+        ctx.moveTo(notX + 90, srcY); ctx.lineTo(andX - 5, inY); ctx.stroke();
+        ctx.fillStyle = COL.muted; ctx.font = '10px JetBrains Mono'; ctx.textAlign = 'right';
+        ctx.fillText(lit, andX - 8, inY + 3);
+      });
+    }
+
+    // Wire from AND to OR column
+    ctx.beginPath(); ctx.strokeStyle = COL.wire; ctx.lineWidth = 1.5;
+    ctx.moveTo(andX + 55, ay); ctx.lineTo(orX - 5, ay); ctx.stroke();
+  });
+
+  // Draw OR gate (if multiple terms)
+  const orY = H / 2;
+  if (terms.length > 1) {
+    drawORgate(ctx, orX, orY, COL);
+    terms.forEach((_, ti) => {
+      const ay = andGateY[ti];
+      ctx.beginPath(); ctx.strokeStyle = COL.wire; ctx.lineWidth = 1.5;
+      ctx.moveTo(orX - 5, ay); ctx.lineTo(orX - 5, orY + (ti - (terms.length - 1) / 2) * 12);
+      ctx.stroke();
+    });
+    // output wire
+    ctx.beginPath(); ctx.strokeStyle = COL.active; ctx.lineWidth = 2;
+    ctx.moveTo(orX + 55, orY); ctx.lineTo(outX, orY); ctx.stroke();
+  } else if (terms.length === 1) {
+    const ay = andGateY[0] || orY;
+    ctx.beginPath(); ctx.strokeStyle = COL.active; ctx.lineWidth = 2;
+    ctx.moveTo(andX + 55, ay); ctx.lineTo(outX, ay); ctx.stroke();
+  }
+
+  // Output label
+  const outY = terms.length > 1 ? orY : (andGateY[0] || orY);
+  ctx.fillStyle = COL.gate; ctx.strokeStyle = COL.active; ctx.lineWidth = 1.5;
+  roundRect(ctx, outX, outY - 14, 50, 28, 6);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = COL.active; ctx.font = 'bold 14px JetBrains Mono'; ctx.textAlign = 'center';
+  ctx.fillText('Y', outX + 25, outY + 5);
+
+  ctx.textAlign = 'left';
+}
+
+function drawANDgate(ctx, x, y, C) {
+  ctx.fillStyle = C.gate; ctx.strokeStyle = C.and; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(x, y - 18); ctx.lineTo(x + 28, y - 18);
+  ctx.arc(x + 28, y, 18, -Math.PI/2, Math.PI/2);
+  ctx.lineTo(x, y + 18); ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = C.and; ctx.font = '10px JetBrains Mono'; ctx.textAlign = 'center';
+  ctx.fillText('AND', x + 18, y + 4);
+}
+
+function drawORgate(ctx, x, y, C) {
+  ctx.fillStyle = C.gate; ctx.strokeStyle = C.or; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(x, y - 18);
+  ctx.quadraticCurveTo(x + 20, y - 18, x + 55, y);
+  ctx.quadraticCurveTo(x + 20, y + 18, x, y + 18);
+  ctx.quadraticCurveTo(x + 10, y, x, y - 18);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = C.or; ctx.font = '10px JetBrains Mono'; ctx.textAlign = 'center';
+  ctx.fillText('OR', x + 25, y + 4);
+}
+
+function drawNOTgate(ctx, x, y, C) {
+  ctx.fillStyle = C.gate; ctx.strokeStyle = C.not; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(x, y - 10); ctx.lineTo(x + 24, y); ctx.lineTo(x, y + 10); ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.strokeStyle = C.not; ctx.fillStyle = C.gate;
+  ctx.arc(x + 27, y, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y); ctx.arc(x + w - r, y + r, r, -Math.PI/2, 0);
+  ctx.lineTo(x + w, y + h - r); ctx.arc(x + w - r, y + h - r, r, 0, Math.PI/2);
+  ctx.lineTo(x + r, y + h); ctx.arc(x + r, y + h - r, r, Math.PI/2, Math.PI);
+  ctx.lineTo(x, y + r); ctx.arc(x + r, y + r, r, Math.PI, -Math.PI/2);
+  ctx.closePath();
+}
+
+function renderCircuitLegend() {
+  document.getElementById('circuit-legend').innerHTML = `
+    <div class="legend-item"><div class="legend-dot" style="background:#7c6fff"></div>AND-Gatter</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ff6f9c"></div>OR-Gatter</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ffb84f"></div>NOT-Gatter (Inverter)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#4fffb0"></div>Ausgang Y</div>
+    <div style="font-size:11px;color:var(--muted);width:100%;margin-top:4px">Schaltkreis basiert auf der minimierten DNF. Jeder AND-Block entspricht einem Term.</div>
+  `;
+}
+
+// Init
+compute();
+</script>
+</body>
+</html>
