@@ -793,23 +793,46 @@ function buildGraph() {
     }
 }
 
+
+
 // ============================================
-// 7. CSV-IMPORT
+// 7. CSV-IMPORT (VERBESSERT)
 // ============================================
+
+// CSV-Datei hochladen
+function loadCSVFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById('csvData').value = e.target.result;
+        console.log('✅ CSV-Datei geladen: ' + file.name);
+    };
+    reader.readAsText(file);
+}
 
 // Beispiel laden
 function loadExample() {
     document.getElementById('csvData').value = `source,target,weight
-A,B,4
-A,C,2
+A,B,1
 B,C,1
-B,D,5
-C,D,8
-D,E,3
-E,A,6`;
+C,D,1
+D,E,1
+E,F,1
+F,G,2
+G,H,1
+H,I,1
+I,J,1
+J,K,1
+K,L,1
+L,M,1
+M,N,1
+N,O,1
+A,F,5`;
 }
 
-// CSV parsen und Graph erstellen
+// CSV parsen und Graph erstellen - VERBESSERT!
 function parseCSV() {
     const data = document.getElementById('csvData').value.trim();
     
@@ -819,50 +842,79 @@ function parseCSV() {
     }
     
     try {
-        const result = Papa.parse(data, { header: true, skipEmptyLines: true });
+        // Parse CSV
+        const result = Papa.parse(data, { 
+            header: true, 
+            skipEmptyLines: true,
+            dynamicTyping: false
+        });
         
+        console.log('Parsed CSV:', result.data);
+        
+        // Leere alte Daten
         nodes.clear();
         edges.clear();
         graph = {};
         
+        // Erste: Sammle alle Knoten
         const nodeSet = new Set();
         
         result.data.forEach(row => {
-            const from = row.source.trim();
-            const to = row.target.trim();
-            const weight = parseFloat(row.weight);
-            
-            nodeSet.add(from);
-            nodeSet.add(to);
-            
-            if (!graph[from]) graph[from] = {};
-            if (!graph[to]) graph[to] = {};
-            
-            graph[from][to] = weight;
-            graph[to][from] = weight;
-        });
-        
-        nodeSet.forEach(n => {
-            nodes.add({ id: n, label: n });
-        });
-        
-        for (const from in graph) {
-            for (const to in graph[from]) {
-                if (from < to) {
-                    edges.add({
-                        id: `${from}-${to}`,
-                        from: from,
-                        to: to,
-                        label: graph[from][to].toString()
-                    });
-                }
+            if (row.source && row.target) {
+                const from = String(row.source).trim();
+                const to = String(row.target).trim();
+                
+                nodeSet.add(from);
+                nodeSet.add(to);
+                
+                console.log(`Kante: ${from} → ${to}`);
             }
-        }
+        });
         
+        console.log(`Total Knoten: ${nodeSet.size}`);
+        
+        // Zweite: Füge alle Knoten zu vis-network hinzu
+        nodeSet.forEach(n => {
+            nodes.add({ 
+                id: n, 
+                label: n,
+                title: n
+            });
+            graph[n] = {};
+        });
+        
+        // Dritte: Verarbeite alle Kanten
+        result.data.forEach(row => {
+            if (row.source && row.target && row.weight) {
+                const from = String(row.source).trim();
+                const to = String(row.target).trim();
+                const weight = parseFloat(row.weight);
+                
+                // Beide Richtungen (ungerichteter Graph)
+                graph[from][to] = weight;
+                graph[to][from] = weight;
+                
+                // Füge Kante zu vis-network hinzu
+                edges.add({
+                    id: `${from}-${to}`,
+                    from: from,
+                    to: to,
+                    label: weight.toString(),
+                    color: '#848484'
+                });
+            }
+        });
+        
+        // Update Algorithmus-Auswahl
         updateAlgoSelects();
-        showResult('✅ CSV erfolgreich geladen!', true);
+        
+        // Zeige Erfolg
+        showResult(`✅ Graph erfolgreich geladen!<br>Knoten: ${nodeSet.size}<br>Kanten: ${Object.keys(graph).length}`, true);
+        
+        console.log('✅ CSV erfolgreich verarbeitet!', graph);
         
     } catch (e) {
+        console.error('Fehler beim CSV-Import:', e);
         alert('Fehler beim CSV-Import: ' + e.message);
     }
 }
@@ -995,7 +1047,7 @@ function updateAlgoUI() {
     if (!algo) {
         params.classList.add('hidden');
         return;
-    }
+    
     
     params.classList.remove('hidden');
     startG.classList.remove('hidden');
