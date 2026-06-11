@@ -1,0 +1,100 @@
+AUTOMAT 1: Einfacher Automat für Wörter mit "ab"
+═══════════════════════════════════════════════════
+
+Zustände Q:
+q0, q1, q2, q3
+
+Alphabet Σ:
+a, b
+
+Startzustand:
+q0
+
+Endzustände F:
+q3
+
+Übergänge δ:
+q0,a,q1
+q1,b,q2
+q2,a,q3
+q3,a,q3
+q3,b,q3
+
+Testworte:
+✓ ab (akzeptiert)
+✓ aba (akzeptiert)
+✓ abab (akzeptiert)
+✗ a (nicht akzeptiert)
+✗ b (nicht akzeptiert)
+✗ ba (nicht akzeptiert)
+
+═══════════════════════════════════════════════════
+
+AUTOMAT 2: Akzeptiert Binärzahlen (0,1) die mit 1 enden
+═══════════════════════════════════════════════════
+
+Zustände Q:
+q0, q1
+
+Alphabet Σ:
+0, 1
+
+Startzustand:
+q0
+
+Endzustände F:
+q1
+
+Übergänge δ:
+q0,0,q0
+q0,1,q1
+q1,0,q0
+q1,1,q1
+
+Testworte:
+✓ 1 (akzeptiert)
+✓ 01 (akzeptiert)
+✓ 101 (akzeptiert)
+✓ 111 (akzeptiert)
+✗ 0 (nicht akzeptiert)
+✗ 10 (nicht akzeptiert)
+✗ 100 (nicht akzeptiert)
+
+═══════════════════════════════════════════════════
+
+AUTOMAT 3: Akzeptiert Wörter "aa" oder "bb"
+═══════════════════════════════════════════════════
+
+Zustände Q:
+q0, q1, q2, q3
+
+Alphabet Σ:
+a, b
+
+Startzustand:
+q0
+
+Endzustände F:
+q2, q3
+
+Übergänge δ:
+q0,a,q1
+q0,b,q2
+q1,a,q2
+q1,b,q0
+q2,a,q2
+q2,b,q2
+q3,a,q3
+q3,b,q3
+
+Testworte:
+✓ aa (akzeptiert)
+✓ bb (akzeptiert)
+✓ aaa (akzeptiert)
+✓ aaab (akzeptiert)
+✗ ab (nicht akzeptiert)
+✗ ba (nicht akzeptiert)
+✗ a (nicht akzeptiert)
+✗ b (nicht akzeptiert)
+
+═══════════════════════════════════════════════════

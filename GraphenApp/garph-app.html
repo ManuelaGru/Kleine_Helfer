@@ -1,0 +1,1800 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph & Automaten Visualisierung</title>
+    
+    <!-- Externe Bibliotheken -->
+    <script src="https://unpkg.com/vis-network@9.1.6/standalone/umd/vis-network.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4361ee 0%, #3f37c9 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .header h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 0;
+        }
+        
+        .sidebar {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-right: 2px solid #dee2e6;
+            overflow-y: auto;
+            max-height: 90vh;
+        }
+        
+        .content-area { padding: 1.5rem; }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .card h3 {
+            color: #4361ee;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            border-bottom: 2px solid #4361ee;
+            padding-bottom: 0.5rem;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #dee2e6;
+            flex-wrap: wrap;
+        }
+        
+        .tab {
+            padding: 0.5rem 0.75rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: #6c757d;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            color: #4361ee;
+            border-bottom-color: #4361ee;
+            font-weight: 600;
+        }
+        
+        .form-group { margin-bottom: 1rem; }
+        
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #495057;
+            font-size: 0.9rem;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 0.6rem;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #4361ee;
+        }
+        
+        textarea {
+            resize: vertical;
+            font-family: monospace;
+            min-height: 80px;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 0.6rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        
+        .btn-primary { background: #4361ee; color: white; }
+        .btn-primary:hover { background: #3f37c9; }
+        .btn-success { background: #06d6a0; color: white; }
+        .btn-warning { background: #ffd60a; color: #000; }
+        .btn-danger { background: #ef476f; color: white; }
+        .btn-sm { padding: 0.4rem 0.6rem; font-size: 0.85rem; }
+        .btn-block { width: 100%; display: block; }
+        
+        .input-group { display: flex; gap: 0.5rem; }
+        .input-group input, .input-group select { flex: 1; }
+        
+        .node-list, .edge-list {
+            max-height: 180px;
+            overflow-y: auto;
+            padding: 0.75rem;
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            border: 1px solid #dee2e6;
+        }
+        
+        .node-badge {
+            display: inline-block;
+            background: #4361ee;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            margin: 0.25rem;
+            font-size: 0.85rem;
+        }
+        
+        .edge-item {
+            background: white;
+            padding: 0.6rem;
+            margin-bottom: 0.5rem;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #dee2e6;
+        }
+        
+        .graph-container {
+            height: 75vh;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            background: #fcfcfc;
+            position: relative;
+        }
+        
+        #graph { width: 100%; height: 100%; }
+        
+        .legend {
+            display: flex;
+            gap: 1rem;
+            padding: 0.75rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            font-size: 0.85rem;
+        }
+        
+        .legend-item { display: flex; align-items: center; gap: 0.5rem; }
+        
+        .legend-circle {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid #333;
+        }
+        
+        .alert {
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .alert-info {
+            background: #cfe2ff;
+            color: #084298;
+            border: 1px solid #b6d4fe;
+        }
+        
+        .alert-success {
+            background: #d1e7dd;
+            color: #0f5132;
+            border: 1px solid #badbcc;
+        }
+        
+        .result-box {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #4361ee;
+        }
+        
+        .step-display {
+            background: #4361ee;
+            color: white;
+            padding: 0.6rem;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 600;
+            margin: 0.5rem 0;
+            font-size: 0.9rem;
+        }
+        
+        .analysis-result {
+            background: #e7f3ff;
+            border-left: 4px solid #4361ee;
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+            border-radius: 4px;
+        }
+        
+        .hidden { display: none !important; }
+        small { color: #6c757d; font-size: 0.8rem; }
+        
+        @media (max-width: 1200px) {
+            .main-content { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-project-diagram"></i> Graph & Automaten Visualisierung</h1>
+            <p>Graphentheorie, Algorithmen & Formale Sprachen</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="sidebar">
+                <!-- Eingabe Tabs -->
+                <div class="card">
+                    <div class="tabs">
+                        <button class="tab active" onclick="switchTab('manual')">
+                            <i class="fas fa-keyboard"></i> Manuell
+                        </button>
+                        <button class="tab" onclick="switchTab('csv')">
+                            <i class="fas fa-file-csv"></i> CSV
+                        </button>
+                        <button class="tab" onclick="switchTab('automaton')">
+                            <i class="fas fa-robot"></i> Automat
+                        </button>
+                    </div>
+                    
+                    <!-- Manuelle Eingabe -->
+                    <div id="manual-content" class="tab-content">
+                        <h3>Grapherstellung</h3>
+                        
+                        <div class="form-group">
+                            <label>Knoten generieren</label>
+                            <div class="input-group">
+                                <input type="number" id="nodeCount" min="2" max="26" value="5">
+                                <button class="btn btn-primary btn-sm" onclick="generateNodes()">
+                                    <i class="fas fa-plus"></i> Erstellen
+                                </button>
+                            </div>
+                            <small>Erstellt A, B, C, ...</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Eigenen Knoten</label>
+                            <div class="input-group">
+                                <input type="text" id="customNode" placeholder="Name" onkeypress="if(event.key==='Enter') addCustomNode()">
+                                <button class="btn btn-primary btn-sm" onclick="addCustomNode()">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Knoten: <span id="nodeCountDisplay">0</span></label>
+                            <div class="node-list" id="nodeList">
+                                <div class="alert alert-info">Keine Knoten</div>
+                            </div>
+                            <button class="btn btn-warning btn-sm" onclick="clearNodes()">
+                                <i class="fas fa-trash"></i> Löschen
+                            </button>
+                        </div>
+                        
+                        <h3>Kanten</h3>
+                        
+                        <div class="form-group">
+                            <label>Neue Kante</label>
+                            <div class="input-group">
+                                <select id="edgeFrom"></select>
+                                <select id="edgeTo"></select>
+                                <input type="number" id="edgeWeight" value="1" min="1" style="width: 70px;">
+                            </div>
+                            <button class="btn btn-success btn-sm btn-block" onclick="addEdge()" style="margin-top: 0.5rem;">
+                                <i class="fas fa-plus"></i> Hinzufügen
+                            </button>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Kanten: <span id="edgeCountDisplay">0</span></label>
+                            <div class="edge-list" id="edgeList">
+                                <div class="alert alert-info">Keine Kanten</div>
+                            </div>
+                            <button class="btn btn-warning btn-sm" onclick="clearEdges()">
+                                <i class="fas fa-trash"></i> Löschen
+                            </button>
+                        </div>
+                        
+                        <button class="btn btn-success btn-block" onclick="buildGraph()">
+                            <i class="fas fa-check"></i> Graph erstellen
+                        </button>
+                    </div>
+                    
+                    <!-- CSV Eingabe -->
+                    <div id="csv-content" class="tab-content hidden">
+                        <h3>CSV Import</h3>
+                        
+                        <div class="form-group">
+                            <label>CSV-Datei hochladen</label>
+                            <input type="file" id="csvFile" accept=".csv" onchange="loadCSVFile(event)">
+                            <small>Wähle eine .csv Datei</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Oder CSV-Daten manuell eingeben</label>
+                            <textarea id="csvData" placeholder="source,target,weight
+A,B,5
+A,C,3
+B,C,2"></textarea>
+                        </div>
+                        
+                        <button class="btn btn-success btn-block" onclick="parseCSV()">
+                            <i class="fas fa-upload"></i> CSV laden
+                        </button>
+                        <button class="btn btn-primary btn-block" onclick="loadExample()">
+                            <i class="fas fa-lightbulb"></i> Beispiel laden
+                        </button>
+                    </div>
+                    
+                    <!-- Automat Eingabe -->
+                    <div id="automaton-content" class="tab-content hidden">
+                        <h3>Endlicher Automat</h3>
+                        
+                        <div class="alert alert-info">
+                            <strong>Formale Sprachen:</strong> Erstelle einen Automaten zur Worterkennung.
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Zustände Q</label>
+                            <input type="text" id="automStates" value="q0,q1,q2,q3">
+                            <small>Komma-getrennt</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Alphabet Σ</label>
+                            <input type="text" id="automAlphabet" value="a,b">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Startzustand</label>
+                            <input type="text" id="automStart" value="q0">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Endzustände F</label>
+                            <input type="text" id="automFinal" value="q3">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Übergänge δ</label>
+                            <textarea id="automTrans">q0,a,q1
+q1,b,q2
+q2,a,q3
+q3,a,q3
+q3,b,q3</textarea>
+                            <small>von,symbol,nach</small>
+                        </div>
+                        
+                        <button class="btn btn-success btn-block" onclick="buildAutomaton()">
+                            <i class="fas fa-robot"></i> Erstellen
+                        </button>
+                        
+                        <div class="form-group" style="margin-top: 1rem;">
+                            <label>Wort testen</label>
+                            <div class="input-group">
+                                <input type="text" id="testWord" placeholder="aba">
+                                <button class="btn btn-primary btn-sm" onclick="testWord()">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                            </div>
+                            <div id="wordResult"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Algorithmen -->
+                <div class="card">
+                    <h3>Algorithmen</h3>
+                    
+                    <div class="form-group">
+                        <label>Algorithmus</label>
+                        <select id="algoSelect" onchange="updateAlgoUI()">
+                            <option value="">Wählen...</option>
+                            <option value="dijkstra">Dijkstra</option>
+                            <option value="kruskal">Kruskal</option>
+                            <option value="prim">Prim</option>
+                            <option value="bfs">BFS</option>
+                            <option value="dfs">DFS</option>
+                        </select>
+                    </div>
+                    
+                    <div id="algoParams" class="hidden">
+                        <div class="form-group" id="startGroup">
+                            <label>Start</label>
+                            <select id="algoStart"></select>
+                        </div>
+                        
+                        <div class="form-group hidden" id="endGroup">
+                            <label>Ziel</label>
+                            <select id="algoEnd"></select>
+                        </div>
+                        
+                        <button class="btn btn-primary btn-block" onclick="runAlgo()">
+                            <i class="fas fa-play"></i> Ausführen
+                        </button>
+                        
+                        <div id="stepCtrl" class="hidden" style="margin-top: 0.5rem;">
+                            <button class="btn btn-success btn-sm" onclick="nextStep()">
+                                <i class="fas fa-forward"></i> Weiter
+                            </button>
+                            <button class="btn btn-warning btn-sm" onclick="resetVis()">
+                                <i class="fas fa-undo"></i> Reset
+                            </button>
+                        </div>
+                        
+                        <div id="stepInfo" class="step-display hidden"></div>
+                    </div>
+                </div>
+                
+                <!-- Graph-Analyse -->
+                <div class="card">
+                    <h3>Graph-Analyse</h3>
+                    <button class="btn btn-primary btn-block" onclick="analyzeGraph()">
+                        <i class="fas fa-microscope"></i> Analysieren
+                    </button>
+                    <div id="analysisResults" class="hidden" style="margin-top: 1rem;"></div>
+                </div>
+            </div>
+            
+            <div class="content-area">
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-circle" style="background: #97C2FC;"></div>
+                        <span>Normal</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-circle" style="background: #FB7E81;"></div>
+                        <span>Start</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-circle" style="background: #7BE141;"></div>
+                        <span>Ziel</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-circle" style="background: #FFA500;"></div>
+                        <span>Aktuell</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-circle" style="background: #A97CE8;"></div>
+                        <span>Besucht</span>
+                    </div>
+                </div>
+                
+                <div class="graph-container">
+                    <div id="graph"></div>
+                </div>
+                
+                <div id="resultArea" class="result-box hidden" style="margin-top: 1rem;">
+                    <h4 style="margin-bottom: 0.5rem;">Ergebnis</h4>
+                    <div id="resultText"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // HIER FOLGEN JETZT DIE CODE-BLÖCKE 1-22 (von unten)
+        // PLUS die neue loadCSVFile Funktion!
+       // ============================================
+// 1. GLOBALE VARIABLEN
+// ============================================
+let nodes, edges, network, graph = {};
+let manualNodes = new Set();
+let manualEdges = [];
+let algoSteps = [];
+let currentStep = 0;
+let automData = null;
+
+// ============================================
+// 2. INITIALISIERUNG
+// ============================================
+window.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 App startet...');
+    initNetwork();
+});
+
+function initNetwork() {
+    try {
+        nodes = new vis.DataSet();
+        edges = new vis.DataSet();
+        
+        const container = document.getElementById('graph');
+        const data = { nodes: nodes, edges: edges };
+        
+        const options = {
+            nodes: {
+                shape: 'circle',
+                size: 25,
+                font: { size: 14, color: '#000' },
+                borderWidth: 2,
+                shadow: true
+            },
+            edges: {
+                width: 2,
+                arrows: { to: { enabled: false } },
+                font: { size: 12, align: 'middle' },
+                shadow: true,
+                smooth: { type: 'continuous' }
+            },
+            physics: {
+                enabled: true,
+                stabilization: { iterations: 100 }
+            }
+        };
+        
+        network = new vis.Network(container, data, options);
+        console.log('✅ Netzwerk initialisiert!');
+        
+    } catch (error) {
+        console.error('❌ Fehler:', error);
+        alert('Fehler: ' + error.message);
+    }
+}
+
+// ============================================
+// 3. TAB-WECHSEL
+// ============================================
+function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+    
+    event.target.classList.add('active');
+    
+    document.getElementById(tab + '-content').classList.remove('hidden');
+}
+
+// ============================================
+// 4. KNOTEN-VERWALTUNG
+// ============================================
+
+// Automatisch Knoten A, B, C, ... generieren
+function generateNodes() {
+    const count = parseInt(document.getElementById('nodeCount').value);
+    
+    if (count < 2 || count > 26) {
+        alert('Bitte 2-26 eingeben');
+        return;
+    }
+    
+    manualNodes.clear();
+    
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    for (let i = 0; i < count; i++) {
+        manualNodes.add(letters[i]);
+    }
+    
+    updateNodeList();
+    updateEdgeSelects();
+}
+
+// Benutzerdefinierten Knoten hinzufügen
+function addCustomNode() {
+    const input = document.getElementById('customNode');
+    const name = input.value.trim();
+    
+    if (!name) {
+        alert('Bitte einen Namen eingeben');
+        return;
+    }
+    
+    if (manualNodes.has(name)) {
+        alert('Knoten existiert bereits');
+        return;
+    }
+    
+    manualNodes.add(name);
+    input.value = '';
+    
+    updateNodeList();
+    updateEdgeSelects();
+}
+
+// Zeigt alle Knoten an
+function updateNodeList() {
+    const list = document.getElementById('nodeList');
+    document.getElementById('nodeCountDisplay').textContent = manualNodes.size;
+    
+    if (manualNodes.size === 0) {
+        list.innerHTML = '<div class="alert alert-info">Keine Knoten</div>';
+        return;
+    }
+    
+    let html = '';
+    manualNodes.forEach(n => {
+        html += `<span class="node-badge">${n}</span>`;
+    });
+    list.innerHTML = html;
+}
+
+// Alle Knoten löschen
+function clearNodes() {
+    if (confirm('Wirklich alle Knoten löschen?')) {
+        manualNodes.clear();
+        manualEdges = [];
+        updateNodeList();
+        updateEdgeList();
+        updateEdgeSelects();
+    }
+}
+
+// ============================================
+// 5. KANTEN-VERWALTUNG
+// ============================================
+
+// Dropdown-Listen für Kanten aktualisieren
+function updateEdgeSelects() {
+    const from = document.getElementById('edgeFrom');
+    const to = document.getElementById('edgeTo');
+    
+    from.innerHTML = '';
+    to.innerHTML = '';
+    
+    Array.from(manualNodes).sort().forEach(n => {
+        from.add(new Option(n, n));
+        to.add(new Option(n, n));
+    });
+}
+
+// Neue Kante hinzufügen
+function addEdge() {
+    const from = document.getElementById('edgeFrom').value;
+    const to = document.getElementById('edgeTo').value;
+    const weight = parseInt(document.getElementById('edgeWeight').value);
+    
+    if (!from || !to) {
+        alert('Bitte Knoten auswählen');
+        return;
+    }
+    
+    if (from === to) {
+        alert('Keine Schleifen erlaubt');
+        return;
+    }
+    
+    const exists = manualEdges.find(e => 
+        (e.from === from && e.to === to) || 
+        (e.from === to && e.to === from)
+    );
+    
+    if (exists) {
+        alert('Kante existiert bereits');
+        return;
+    }
+    
+    manualEdges.push({ from, to, weight });
+    updateEdgeList();
+}
+
+// Zeigt alle Kanten an
+function updateEdgeList() {
+    const list = document.getElementById('edgeList');
+    document.getElementById('edgeCountDisplay').textContent = manualEdges.length;
+    
+    if (manualEdges.length === 0) {
+        list.innerHTML = '<div class="alert alert-info">Keine Kanten</div>';
+        return;
+    }
+    
+    let html = '';
+    manualEdges.forEach((e, i) => {
+        html += `
+            <div class="edge-item">
+                <span><b>${e.from} ↔ ${e.to}</b> (${e.weight})</span>
+                <button class="btn btn-danger btn-sm" onclick="removeEdge(${i})">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+    });
+    list.innerHTML = html;
+}
+
+// Einzelne Kante entfernen
+function removeEdge(idx) {
+    manualEdges.splice(idx, 1);
+    updateEdgeList();
+}
+
+// Alle Kanten löschen
+function clearEdges() {
+    if (confirm('Wirklich alle Kanten löschen?')) {
+        manualEdges = [];
+        updateEdgeList();
+    }
+}
+
+// ============================================
+// 6. GRAPH ERSTELLEN & VISUALISIEREN
+// ============================================
+
+function buildGraph() {
+    if (manualNodes.size === 0) {
+        alert('Bitte zuerst Knoten hinzufügen');
+        return;
+    }
+    
+    try {
+        nodes.clear();
+        edges.clear();
+        graph = {};
+        
+        manualNodes.forEach(n => {
+            nodes.add({ id: n, label: n });
+            graph[n] = {};
+        });
+        
+        manualEdges.forEach(e => {
+            graph[e.from][e.to] = e.weight;
+            graph[e.to][e.from] = e.weight;
+            
+            edges.add({
+                id: `${e.from}-${e.to}`,
+                from: e.from,
+                to: e.to,
+                label: e.weight.toString()
+            });
+        });
+        
+        updateAlgoSelects();
+        showResult('✅ Graph erfolgreich erstellt!', true);
+        
+    } catch (error) {
+        alert('Fehler: ' + error.message);
+    }
+}
+
+
+
+// ============================================
+// 7. CSV-IMPORT (VERBESSERT)
+// ============================================
+
+// CSV-Datei hochladen
+function loadCSVFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById('csvData').value = e.target.result;
+        console.log('✅ CSV-Datei geladen: ' + file.name);
+    };
+    reader.readAsText(file);
+}
+
+// Beispiel laden
+function loadExample() {
+    document.getElementById('csvData').value = `source,target,weight
+A,B,1
+B,C,1
+C,D,1
+D,E,1
+E,F,1
+F,G,2
+G,H,1
+H,I,1
+I,J,1
+J,K,1
+K,L,1
+L,M,1
+M,N,1
+N,O,1
+A,F,5`;
+}
+
+// CSV parsen und Graph erstellen - VERBESSERT!
+function parseCSV() {
+    const data = document.getElementById('csvData').value.trim();
+    
+    if (!data) {
+        alert('Bitte Daten eingeben');
+        return;
+    }
+    
+    try {
+        // Parse CSV
+        const result = Papa.parse(data, { 
+            header: true, 
+            skipEmptyLines: true,
+            dynamicTyping: false
+        });
+        
+        console.log('Parsed CSV:', result.data);
+        
+        // Leere alte Daten
+        nodes.clear();
+        edges.clear();
+        graph = {};
+        
+        // Erste: Sammle alle Knoten
+        const nodeSet = new Set();
+        
+        result.data.forEach(row => {
+            if (row.source && row.target) {
+                const from = String(row.source).trim();
+                const to = String(row.target).trim();
+                
+                nodeSet.add(from);
+                nodeSet.add(to);
+                
+                console.log(`Kante: ${from} → ${to}`);
+            }
+        });
+        
+        console.log(`Total Knoten: ${nodeSet.size}`);
+        
+        // Zweite: Füge alle Knoten zu vis-network hinzu
+        nodeSet.forEach(n => {
+            nodes.add({ 
+                id: n, 
+                label: n,
+                title: n
+            });
+            graph[n] = {};
+        });
+        
+        // Dritte: Verarbeite alle Kanten
+        result.data.forEach(row => {
+            if (row.source && row.target && row.weight) {
+                const from = String(row.source).trim();
+                const to = String(row.target).trim();
+                const weight = parseFloat(row.weight);
+                
+                // Beide Richtungen (ungerichteter Graph)
+                graph[from][to] = weight;
+                graph[to][from] = weight;
+                
+                // Füge Kante zu vis-network hinzu
+                edges.add({
+                    id: `${from}-${to}`,
+                    from: from,
+                    to: to,
+                    label: weight.toString(),
+                    color: '#848484'
+                });
+            }
+        });
+        
+        // Update Algorithmus-Auswahl
+        updateAlgoSelects();
+        
+        // Zeige Erfolg
+        showResult(`✅ Graph erfolgreich geladen!<br>Knoten: ${nodeSet.size}<br>Kanten: ${Object.keys(graph).length}`, true);
+        
+        console.log('✅ CSV erfolgreich verarbeitet!', graph);
+        
+    } catch (e) {
+        console.error('Fehler beim CSV-Import:', e);
+        alert('Fehler beim CSV-Import: ' + e.message);
+    }
+}
+
+// ============================================
+// 8. ENDLICHE AUTOMATEN (FORMALE SPRACHEN)
+// ============================================
+
+function buildAutomaton() {
+    const stateStr = document.getElementById('automStates').value;
+    const startState = document.getElementById('automStart').value.trim();
+    const finalStr = document.getElementById('automFinal').value;
+    const transStr = document.getElementById('automTrans').value;
+    
+    const states = stateStr.split(',').map(s => s.trim()).filter(s => s);
+    const finalStates = finalStr.split(',').map(s => s.trim()).filter(s => s);
+    
+    if (states.length === 0 || !startState) {
+        alert('Bitte Zustände und Startzustand angeben');
+        return;
+    }
+    
+    const transitions = [];
+    transStr.split('\n').forEach(line => {
+        const parts = line.split(',').map(p => p.trim());
+        if (parts.length === 3) {
+            transitions.push({ 
+                from: parts[0], 
+                symbol: parts[1], 
+                to: parts[2] 
+            });
+        }
+    });
+    
+    automData = { states, startState, finalStates, transitions };
+    
+    nodes.clear();
+    edges.clear();
+    
+    states.forEach(state => {
+        const isStart = state === startState;
+        const isFinal = finalStates.includes(state);
+        
+        nodes.add({
+            id: state,
+            label: state,
+            color: {
+                background: isStart ? '#FB7E81' : (isFinal ? '#7BE141' : '#97C2FC'),
+                border: '#2B7CE9'
+            },
+            borderWidth: isFinal ? 4 : 2
+        });
+    });
+    
+    const edgeMap = new Map();
+    transitions.forEach(t => {
+        const key = `${t.from}-${t.to}`;
+        if (!edgeMap.has(key)) {
+            edgeMap.set(key, []);
+        }
+        edgeMap.get(key).push(t.symbol);
+    });
+    
+    edgeMap.forEach((symbols, key) => {
+        const [from, to] = key.split('-');
+        edges.add({
+            id: key,
+            from: from,
+            to: to,
+            label: symbols.join(', '),
+            arrows: { to: { enabled: true } }
+        });
+    });
+    
+    showResult('✅ Automat erstellt!', true);
+}
+
+// Wort im Automaten testen
+function testWord() {
+    if (!automData) {
+        alert('Bitte zuerst einen Automaten erstellen');
+        return;
+    }
+    
+    const word = document.getElementById('testWord').value.trim();
+    const resultDiv = document.getElementById('wordResult');
+    
+    let state = automData.startState;
+    let path = [state];
+    let accepted = true;
+    
+    for (let i = 0; i < word.length; i++) {
+        const symbol = word[i];
+        
+        const trans = automData.transitions.find(t => 
+            t.from === state && t.symbol === symbol
+        );
+        
+        if (!trans) {
+            accepted = false;
+            break;
+        }
+        
+        state = trans.to;
+        path.push(state);
+    }
+    
+    if (accepted && !automData.finalStates.includes(state)) {
+        accepted = false;
+    }
+    
+    resultDiv.innerHTML = `
+        <div class="alert ${accepted ? 'alert-success' : 'alert-info'}" style="margin-top: 0.5rem;">
+            <b>"${word}":</b> ${accepted ? '✅ AKZEPTIERT' : '❌ ABGELEHNT'}<br>
+            <small>Pfad: ${path.join(' → ')}</small>
+        </div>
+    `;
+}
+
+// ============================================
+// 9. ALGORITHMEN - UI & AUSWAHL
+// ============================================
+
+function updateAlgoUI() {
+    const algo = document.getElementById('algoSelect').value;
+    const params = document.getElementById('algoParams');
+    const startG = document.getElementById('startGroup');
+    const endG = document.getElementById('endGroup');
+    
+    if (!algo) {
+        params.classList.add('hidden');
+        return;
+    
+    
+    params.classList.remove('hidden');
+    startG.classList.remove('hidden');
+    endG.classList.add('hidden');
+    
+    if (algo === 'dijkstra') {
+        endG.classList.remove('hidden');
+    }
+    
+    if (algo === 'kruskal') {
+        startG.classList.add('hidden');
+    }
+}
+
+function updateAlgoSelects() {
+    const start = document.getElementById('algoStart');
+    const end = document.getElementById('algoEnd');
+    
+    start.innerHTML = '';
+    end.innerHTML = '';
+    
+    Object.keys(graph).sort().forEach(n => {
+        start.add(new Option(n, n));
+        end.add(new Option(n, n));
+    });
+}
+
+// ============================================
+// 10. ALGORITHMEN - AUSFÜHRUNG
+// ============================================
+
+function runAlgo() {
+    const algo = document.getElementById('algoSelect').value;
+    
+    if (!algo) {
+        alert('Bitte einen Algorithmus auswählen');
+        return;
+    }
+    
+    resetGraph();
+    
+    if (algo === 'dijkstra') {
+        const start = document.getElementById('algoStart').value;
+        const end = document.getElementById('algoEnd').value;
+        dijkstra(start, end);
+        
+    } else if (algo === 'kruskal') {
+        kruskal();
+        
+    } else if (algo === 'prim') {
+        const start = document.getElementById('algoStart').value;
+        prim(start);
+        
+    } else if (algo === 'bfs') {
+        const start = document.getElementById('algoStart').value;
+        bfs(start);
+        
+    } else if (algo === 'dfs') {
+        const start = document.getElementById('algoStart').value;
+        dfs(start);
+    }
+    
+    document.getElementById('stepCtrl').classList.remove('hidden');
+    document.getElementById('stepInfo').classList.remove('hidden');
+    
+    currentStep = 0;
+    nextStep();
+}
+
+// ============================================
+// 11. DIJKSTRA - Kürzester Pfad
+// ============================================
+
+function dijkstra(start, end) {
+    algoSteps = [];
+    
+    const dist = {}, prev = {};
+    const unvisited = new Set(Object.keys(graph));
+    
+    Object.keys(graph).forEach(n => {
+        dist[n] = Infinity;
+        prev[n] = null;
+    });
+    dist[start] = 0;
+    
+    algoSteps.push({
+        desc: `🎯 Start: ${start}, Ziel: ${end}`,
+        nodes: [{ id: start, color: '#FB7E81' }]
+    });
+    
+    while (unvisited.size > 0) {
+        let minNode = null, minDist = Infinity;
+        
+        unvisited.forEach(n => {
+            if (dist[n] < minDist) {
+                minDist = dist[n];
+                minNode = n;
+            }
+        });
+        
+        if (!minNode || minNode === end) break;
+        
+        unvisited.delete(minNode);
+        
+        algoSteps.push({
+            desc: `👉 Besuche ${minNode} (${dist[minNode]})`,
+            nodes: [{ id: minNode, color: '#FFA500' }]
+        });
+        
+        for (const neighbor in graph[minNode]) {
+            if (!unvisited.has(neighbor)) continue;
+            
+            const alt = dist[minNode] + graph[minNode][neighbor];
+            
+            if (alt < dist[neighbor]) {
+                dist[neighbor] = alt;
+                prev[neighbor] = minNode;
+                
+                algoSteps.push({
+                    desc: `📊 ${neighbor}: ${alt}`,
+                    edges: [{ from: minNode, to: neighbor, color: '#06d6a0', width: 4 }]
+                });
+            }
+        }
+        
+        algoSteps.push({
+            desc: `✅ ${minNode} fertig`,
+            nodes: [{ id: minNode, color: '#A97CE8' }]
+        });
+    }
+    
+    const path = [];
+    let curr = end;
+    
+    while (curr !== null) {
+        path.unshift(curr);
+        curr = prev[curr];
+    }
+    
+    algoSteps.push({
+        desc: `🎉 Pfad: ${path.join(' → ')}\nDistanz: ${dist[end]}`,
+        result: `<b>Dijkstra!</b><br>Pfad: ${path.join(' → ')}<br>Distanz: ${dist[end]}`
+    });
+}
+
+// ============================================
+// 12. KRUSKAL - Minimaler Spannbaum
+// ============================================
+
+function kruskal() {
+    algoSteps = [];
+    
+    const allEdges = [];
+    
+    for (const from in graph) {
+        for (const to in graph[from]) {
+            if (from < to) {
+                allEdges.push({ 
+                    from, 
+                    to, 
+                    weight: graph[from][to] 
+                });
+            }
+        }
+    }
+    
+    allEdges.sort((a, b) => a.weight - b.weight);
+    
+    algoSteps.push({
+        desc: `🔍 Sortiere Kanten nach Gewicht`
+    });
+    
+    const parent = {};
+    Object.keys(graph).forEach(n => parent[n] = n);
+    
+    function find(n) {
+        if (parent[n] !== n) {
+            parent[n] = find(parent[n]);
+        }
+        return parent[n];
+    }
+    
+    function union(a, b) {
+        parent[find(a)] = find(b);
+    }
+    
+    const mst = [];
+    let totalWeight = 0;
+    
+    allEdges.forEach(e => {
+        if (find(e.from) !== find(e.to)) {
+            union(e.from, e.to);
+            mst.push(e);
+            totalWeight += e.weight;
+            
+            algoSteps.push({
+                desc: `✅ ${e.from}-${e.to} (${e.weight})`,
+                edges: [{ 
+                    from: e.from, 
+                    to: e.to, 
+                    color: '#06d6a0', 
+                    width: 4 
+                }]
+            });
+            
+        } else {
+            algoSteps.push({
+                desc: `❌ ${e.from}-${e.to} (Zyklus)`,
+                edges: [{ 
+                    from: e.from, 
+                    to: e.to, 
+                    color: '#ef476f' 
+                }]
+            });
+        }
+    });
+    
+    algoSteps.push({
+        desc: `🎉 MST fertig! Gewicht: ${totalWeight}`,
+        result: `<b>Kruskal!</b><br>Gewicht: ${totalWeight}`
+    });
+}
+
+// ============================================
+// 13. PRIM - Minimaler Spannbaum
+// ============================================
+
+function prim(start) {
+    algoSteps = [];
+    
+    const inMST = new Set([start]);
+    const mst = [];
+    let totalWeight = 0;
+    
+    algoSteps.push({
+        desc: `🎯 Start: ${start}`,
+        nodes: [{ id: start, color: '#FB7E81' }]
+    });
+    
+    while (inMST.size < Object.keys(graph).length) {
+        let minEdge = null;
+        let minWeight = Infinity;
+        
+        inMST.forEach(from => {
+            for (const to in graph[from]) {
+                if (!inMST.has(to) && graph[from][to] < minWeight) {
+                    minWeight = graph[from][to];
+                    minEdge = { from, to, weight: minWeight };
+                }
+            }
+        });
+        
+        if (!minEdge) break;
+        
+        inMST.add(minEdge.to);
+        mst.push(minEdge);
+        totalWeight += minEdge.weight;
+        
+        algoSteps.push({
+            desc: `✅ ${minEdge.from}-${minEdge.to} (${minEdge.weight})`,
+            nodes: [{ id: minEdge.to, color: '#7BE141' }],
+            edges: [{ 
+                from: minEdge.from, 
+                to: minEdge.to, 
+                color: '#06d6a0', 
+                width: 4 
+            }]
+        });
+    }
+    
+    algoSteps.push({
+        desc: `🎉 MST fertig! Gewicht: ${totalWeight}`,
+        result: `<b>Prim!</b><br>Gewicht: ${totalWeight}`
+    });
+}
+
+// ============================================
+// 14. BFS - Breitensuche
+// ============================================
+
+function bfs(start) {
+    algoSteps = [];
+    
+    const visited = new Set();
+    const queue = [start];
+    const visitOrder = [];
+    
+    algoSteps.push({
+        desc: `🎯 BFS: ${start}`,
+        nodes: [{ id: start, color: '#FB7E81' }]
+    });
+    
+    while (queue.length > 0) {
+        const curr = queue.shift();
+        
+        if (visited.has(curr)) continue;
+        
+        visited.add(curr);
+        visitOrder.push(curr);
+        
+        algoSteps.push({
+            desc: `👉 ${curr}`,
+            nodes: [{ id: curr, color: '#FFA500' }]
+        });
+        
+        for (const neighbor in graph[curr]) {
+            if (!visited.has(neighbor)) {
+                queue.push(neighbor);
+            }
+        }
+        
+        algoSteps.push({
+            desc: `✅ ${curr} fertig`,
+            nodes: [{ id: curr, color: '#A97CE8' }]
+        });
+    }
+    
+    algoSteps.push({
+        desc: `🎉 BFS fertig! Reihenfolge: ${visitOrder.join(' → ')}`,
+        result: `<b>BFS!</b><br>Knoten: ${visited.size}<br>Reihenfolge: ${visitOrder.join(' → ')}`
+    });
+}
+
+// ============================================
+// 15. DFS - Tiefensuche
+// ============================================
+
+function dfs(start) {
+    algoSteps = [];
+    
+    const visited = new Set();
+    const visitOrder = [];
+    
+    algoSteps.push({
+        desc: `🎯 DFS: ${start}`,
+        nodes: [{ id: start, color: '#FB7E81' }]
+    });
+    
+    function visit(node) {
+        if (visited.has(node)) return;
+        
+        visited.add(node);
+        visitOrder.push(node);
+        
+        algoSteps.push({
+            desc: `👉 ${node}`,
+            nodes: [{ id: node, color: '#FFA500' }]
+        });
+        
+        for (const neighbor in graph[node]) {
+            if (!visited.has(neighbor)) {
+                visit(neighbor);
+            }
+        }
+        
+        algoSteps.push({
+            desc: `✅ ${node} fertig`,
+            nodes: [{ id: node, color: '#A97CE8' }]
+        });
+    }
+    
+    visit(start);
+    
+    algoSteps.push({
+        desc: `🎉 DFS fertig! Reihenfolge: ${visitOrder.join(' → ')}`,
+        result: `<b>DFS!</b><br>Knoten: ${visited.size}<br>Reihenfolge: ${visitOrder.join(' → ')}`
+    });
+}
+
+// ============================================
+// 16. SCHRITTWEISE VISUALISIERUNG
+// ============================================
+
+function nextStep() {
+    if (currentStep >= algoSteps.length) {
+        return;
+    }
+    
+    const step = algoSteps[currentStep];
+    
+    document.getElementById('stepInfo').textContent = 
+        `Schritt ${currentStep + 1}/${algoSteps.length}: ${step.desc}`;
+    
+    if (step.nodes) {
+        step.nodes.forEach(n => {
+            nodes.update({ 
+                id: n.id, 
+                color: { background: n.color } 
+            });
+        });
+    }
+    
+    if (step.edges) {
+        step.edges.forEach(e => {
+            const edgeId = e.from < e.to ? 
+                `${e.from}-${e.to}` : `${e.to}-${e.from}`;
+            
+            edges.update({ 
+                id: edgeId, 
+                color: { color: e.color }, 
+                width: e.width || 2 
+            });
+        });
+    }
+    
+    if (step.result) {
+        showResult(step.result, false);
+    }
+    
+    currentStep++;
+}
+
+// ============================================
+// 17. HILFSFUNKTIONEN
+// ============================================
+
+function resetGraph() {
+    nodes.forEach(n => {
+        nodes.update({ 
+            id: n.id, 
+            color: { background: '#97C2FC' } 
+        });
+    });
+    
+    edges.forEach(e => {
+        edges.update({ 
+            id: e.id, 
+            color: { color: '#848484' }, 
+            width: 2 
+        });
+    });
+}
+
+function resetVis() {
+    resetGraph();
+    currentStep = 0;
+    algoSteps = [];
+    
+    document.getElementById('stepCtrl').classList.add('hidden');
+    document.getElementById('stepInfo').classList.add('hidden');
+    hideResult();
+}
+
+function showResult(text, isSuccess) {
+    const area = document.getElementById('resultArea');
+    const content = document.getElementById('resultText');
+    
+    area.classList.remove('hidden');
+    
+    if (isSuccess) {
+        content.innerHTML = `<div class="alert alert-success">${text}</div>`;
+        setTimeout(hideResult, 2500);
+    } else {
+        content.innerHTML = `<p>${text}</p>`;
+    }
+}
+
+function hideResult() {
+    document.getElementById('resultArea').classList.add('hidden');
+}
+
+// ============================================
+// 18. FLOYD-WARSHALL - Alle kürzesten Pfade
+// ============================================
+
+function floydWarshall() {
+    const nodes_list = Object.keys(graph).sort();
+    const n = nodes_list.length;
+    
+    // Initialisiere Distanz-Matrix
+    const dist = {};
+    nodes_list.forEach(i => {
+        dist[i] = {};
+        nodes_list.forEach(j => {
+            if (i === j) {
+                dist[i][j] = 0;
+            } else if (graph[i] && graph[i][j]) {
+                dist[i][j] = graph[i][j];
+            } else {
+                dist[i][j] = Infinity;
+            }
+        });
+    });
+    
+    // Floyd-Warshall Algorithmus
+    nodes_list.forEach(k => {
+        nodes_list.forEach(i => {
+            nodes_list.forEach(j => {
+                if (dist[i][k] + dist[k][j] < dist[i][j]) {
+                    dist[i][j] = dist[i][k] + dist[k][j];
+                }
+            });
+        });
+    });
+    
+    return dist;
+}
+
+// ============================================
+// 19. BRÜCKEN-ERKENNUNG
+// ============================================
+
+function findBridges() {
+    const bridges = [];
+    const nodes_list = Object.keys(graph);
+    
+    // Für jede Kante: Prüfe ob Graph zerfällt ohne diese Kante
+    for (const from in graph) {
+        for (const to in graph[from]) {
+            if (from < to) {
+                // Entferne Kante temporär
+                const weight = graph[from][to];
+                delete graph[from][to];
+                delete graph[to][from];
+                
+                // Prüfe ob Graph noch zusammenhängend ist
+                if (!isConnected(nodes_list)) {
+                    bridges.push({ from, to, weight });
+                }
+                
+                // Stelle Kante wieder her
+                graph[from][to] = weight;
+                graph[to][from] = weight;
+            }
+        }
+    }
+    
+    return bridges;
+}
+
+function isConnected(nodes_list) {
+    if (nodes_list.length === 0) return true;
+    
+    const visited = new Set();
+    const queue = [nodes_list[0]];
+    
+    while (queue.length > 0) {
+        const node = queue.shift();
+        if (visited.has(node)) continue;
+        
+        visited.add(node);
+        
+        for (const neighbor in graph[node]) {
+            if (!visited.has(neighbor)) {
+                queue.push(neighbor);
+            }
+        }
+    }
+    
+    return visited.size === nodes_list.length;
+}
+
+// ============================================
+// 20. ARTIKULATIONEN - Schnittknoten
+// ============================================
+
+function findArticulations() {
+    const articulations = [];
+    const nodes_list = Object.keys(graph);
+    
+    nodes_list.forEach(node => {
+        // Entferne Knoten temporär
+        const neighbors = { ...graph[node] };
+        delete graph[node];
+        
+        for (const n in graph) {
+            delete graph[n][node];
+        }
+        
+        // Prüfe ob Graph zerfällt
+        const remaining = nodes_list.filter(n => n !== node);
+        if (!isConnected(remaining)) {
+            articulations.push(node);
+        }
+        
+        // Stelle Knoten wieder her
+        graph[node] = neighbors;
+        for (const n in neighbors) {
+            graph[n][node] = neighbors[n];
+        }
+    });
+    
+    return articulations;
+}
+
+// ============================================
+// 21. KOMPONENTEN - Zusammenhängende Teile
+// ============================================
+
+function findComponents() {
+    const visited = new Set();
+    const components = [];
+    const nodes_list = Object.keys(graph);
+    
+    function dfs(node, component) {
+        visited.add(node);
+        component.push(node);
+        
+        for (const neighbor in graph[node]) {
+            if (!visited.has(neighbor)) {
+                dfs(neighbor, component);
+            }
+        }
+    }
+    
+    nodes_list.forEach(node => {
+        if (!visited.has(node)) {
+            const component = [];
+            dfs(node, component);
+            components.push(component);
+        }
+    });
+    
+    return components;
+}
+
+// ============================================
+// 22. EXZENTRIZITÄTEN & ANALYSEN
+// ============================================
+
+function calculateGraphAnalysis() {
+    const nodes_list = Object.keys(graph).sort();
+    
+    // Floyd-Warshall für alle Distanzen
+    const dist = floydWarshall();
+    
+    // Exzentrizitäten berechnen
+    const eccentricity = {};
+    let minEcc = Infinity;
+    let maxEcc = -Infinity;
+    
+    nodes_list.forEach(node => {
+        let maxDist = 0;
+        nodes_list.forEach(other => {
+            if (node !== other && dist[node][other] !== Infinity) {
+                maxDist = Math.max(maxDist, dist[node][other]);
+            }
+        });
+        eccentricity[node] = maxDist;
+        minEcc = Math.min(minEcc, maxDist);
+        maxEcc = Math.max(maxEcc, maxDist);
+    });
+    
+    // Radius, Durchmesser, Zentrum
+    const radius = minEcc;
+    const diameter = maxEcc;
+    const center = nodes_list.filter(n => eccentricity[n] === radius);
+    
+    // Brücken und Artikulationen
+    const bridges = findBridges();
+    const articulations = findArticulations();
+    const components = findComponents();
+    
+    return {
+        distance_matrix: dist,
+        eccentricity: eccentricity,
+        radius: radius,
+        diameter: diameter,
+        center: center,
+        bridges: bridges,
+        articulations: articulations,
+        components: components,
+        num_components: components.length
+    };
+}
+
+// ============================================
+// 23. GRAPH-ANALYSE ANZEIGEN
+// ============================================
+
+function analyzeGraph() {
+    if (Object.keys(graph).length === 0) {
+        alert('Bitte zuerst einen Graph erstellen');
+        return;
+    }
+    
+    try {
+        const analysis = calculateGraphAnalysis();
+        
+        let html = `
+            <div class="analysis-result">
+                <h4>📊 Graph-Analysen</h4>
+                
+                <p><strong>Radius:</strong> ${analysis.radius}</p>
+                <p><strong>Durchmesser:</strong> ${analysis.diameter}</p>
+                <p><strong>Zentrum:</strong> ${analysis.center.join(', ')}</p>
+                
+                <h5>Exzentrizitäten:</h5>
+                <ul>
+        `;
+        
+        for (const node in analysis.eccentricity) {
+            html += `<li>${node}: ${analysis.eccentricity[node]}</li>`;
+        }
+        
+        html += `
+                </ul>
+                
+                <h5>Komponenten (${analysis.num_components}):</h5>
+                <ul>
+        `;
+        
+        analysis.components.forEach((comp, idx) => {
+            html += `<li>Komponente ${idx + 1}: ${comp.join(', ')}</li>`;
+        });
+        
+        html += `
+                </ul>
+                
+                <h5>Brücken (${analysis.bridges.length}):</h5>
+        `;
+        
+        if (analysis.bridges.length === 0) {
+            html += `<p>Keine Brücken vorhanden</p>`;
+        } else {
+            html += `<ul>`;
+            analysis.bridges.forEach(b => {
+                html += `<li>${b.from}-${b.to} (Gewicht: ${b.weight})</li>`;
+            });
+            html += `</ul>`;
+        }
+        
+        html += `
+                <h5>Artikulationen (${analysis.articulations.length}):</h5>
+        `;
+        
+        if (analysis.articulations.length === 0) {
+            html += `<p>Keine Artikulationen vorhanden</p>`;
+        } else {
+            html += `<p>${analysis.articulations.join(', ')}</p>`;
+        }
+        
+        html += `
+            </div>
+        `;
+        
+        document.getElementById('analysisResults').innerHTML = html;
+        document.getElementById('analysisResults').classList.remove('hidden');
+        
+        showResult('✅ Graph-Analyse abgeschlossen!', true);
+        
+    } catch (error) {
+        alert('Fehler bei Analyse: ' + error.message);
+        console.error(error);
+    }
+}
+
+</script>
+</body>
+</html>
